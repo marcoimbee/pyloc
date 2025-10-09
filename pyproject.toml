@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyloc"
+version = "0.1.0"
+description = "Simple lines of code counter for coding projects"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Marco Imbelli Cai", email = "marcoimbelli@yahoo.it" }]
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+pyloc = "pyloc.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pyloc = ["comments.json"]

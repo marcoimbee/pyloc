@@ -1,0 +1,265 @@
+{
+  ".py": {
+    "single_line": "#",
+    "multi_line": {
+      "start": "'''",
+      "end": "'''"
+    }
+  },
+  ".c": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".h": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".cpp": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".hpp": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".cc": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".cxx": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".java": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".js": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".jsx": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".ts": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".tsx": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".cs": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".go": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".rb": {
+    "single_line": "#",
+    "multi_line": {
+      "start": "=begin",
+      "end": "=end"
+    }
+  },
+  ".php": {
+    "single_line": ["//", "#"],
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".sh": {
+    "single_line": "#",
+    "multi_line": null
+  },
+  ".bash": {
+    "single_line": "#",
+    "multi_line": null
+  },
+  ".zsh": {
+    "single_line": "#",
+    "multi_line": null
+  },
+  ".pl": {
+    "single_line": "#",
+    "multi_line": null
+  },
+  ".pm": {
+    "single_line": "#",
+    "multi_line": null
+  },
+  ".r": {
+    "single_line": "#",
+    "multi_line": null
+  },
+  ".sql": {
+    "single_line": "--",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".html": {
+    "single_line": null,
+    "multi_line": {
+      "start": "<!--",
+      "end": "-->"
+    }
+  },
+  ".htm": {
+    "single_line": null,
+    "multi_line": {
+      "start": "<!--",
+      "end": "-->"
+    }
+  },
+  ".xml": {
+    "single_line": null,
+    "multi_line": {
+      "start": "<!--",
+      "end": "-->"
+    }
+  },
+  ".css": {
+    "single_line": null,
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".md": {
+    "single_line": null,
+    "multi_line": null
+  },
+  ".markdown": {
+    "single_line": null,
+    "multi_line": null
+  },
+  ".yml": {
+    "single_line": "#",
+    "multi_line": null
+  },
+  ".yaml": {
+    "single_line": "#",
+    "multi_line": null
+  },
+  ".swift": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".kt": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".kts": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".scala": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".dart": {
+    "single_line": "//",
+    "multi_line": {
+      "start": "/*",
+      "end": "*/"
+    }
+  },
+  ".lua": {
+    "single_line": "--",
+    "multi_line": {
+      "start": "--[[",
+      "end": "]]"
+    }
+  },
+  ".m": {
+    "single_line": "%",
+    "multi_line": {
+      "start": "%{",
+      "end": "%}"
+    }
+  },
+  ".f90": {
+    "single_line": "!",
+    "multi_line": null
+  },
+  ".f95": {
+    "single_line": "!",
+    "multi_line": null
+  },
+  ".f03": {
+    "single_line": "!",
+    "multi_line": null
+  },
+  ".hs": {
+    "single_line": "--",
+    "multi_line": {
+      "start": "{-",
+      "end": "-}"
+    }
+  },
+  ".lisp": {
+    "single_line": ";",
+    "multi_line": null
+  },
+  ".cl": {
+    "single_line": ";",
+    "multi_line": null
+  }
+}

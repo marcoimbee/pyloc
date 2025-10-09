@@ -1,0 +1,7 @@
+TODO.md
+
+# Python-related elements
+venv/
+PyLoC.egg-info/
+build/
+__pycache__/
