@@ -13,6 +13,7 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument('-e', '--extensions', nargs='+', default=[], help='File extensions to include')
     parser.add_argument('-g', '--use_gitignore', default=False, action='store_true',
                         help='Exclude from the count files that are included in the .gitignore file of the directory')
+    parser.add_argument('-i', '--insights', default=False, action='store_true', help='Show insights')
     return parser
 
 def count_locs(target_file: str, comment_signs: list[str] | None, multi_line_comment_signs: dict | None) -> int | None:
@@ -103,19 +104,28 @@ def parse_gitignore(path: str) -> set[str]:
 
     return gitignore_files
 
-def format_print(locs: int, time_val: float, locs_per_ext_hmap: dict | None, tot_files: int) -> None:
+def format_print(
+        show_insights: bool, 
+        locs: int, 
+        time_val: float, 
+        locs_per_ext_hmap: dict, 
+        longest_file_per_ext_hmsp: dict, 
+        tot_files: int
+    ) -> None:
     print('----- [PYLOC SUMMARY] ------')
     print(f'Files: \t\t{tot_files}')
     print(f'Lines of code: \t{locs}')
     print(f'Duration: \t{round(time_val, 2)} s')
-    if locs_per_ext_hmap:
+
+    if show_insights:
         print('--- [LOCs per file type] ---')
-        for ext, count in locs_per_ext_hmap.items():
-            print(f".{ext}: \t\t{count}")
+        for ext, count in sorted(locs_per_ext_hmap.items(), key=lambda item: item[1], reverse=True):
+            print(f".{ext}: \t\t{count}. \tLongest file: {longest_file_per_ext_hmsp[ext][0]}")
 
 def main():
     start_time = time.time()
     locs_per_ext_hmap = {}
+    longest_file_per_ext_hmap = {}
 
     parser = setup_parser()
     args = parser.parse_args()
@@ -123,6 +133,7 @@ def main():
     project_path = Path(args.path)
     extensions = args.extensions
     use_gitignore = args.use_gitignore
+    show_insights = args.insights
 
     if not project_path.exists():
         print(f"[PYLOC] Error: path '{project_path}' does not exist")
@@ -147,8 +158,10 @@ def main():
     if extensions:
         extensions = [ext.lstrip('.') for ext in extensions]
         target_files = {f for f in target_files if os.path.splitext(f)[1].lstrip('.') in extensions}
-        for ext in extensions:
-            locs_per_ext_hmap[ext] = 0
+        if show_insights:
+            for ext in extensions:
+                locs_per_ext_hmap[ext] = 0
+                longest_file_per_ext_hmap[ext] = (None, -1)
 
     # Exclude .gitignored files
     target_files.difference_update(excluded_files)
@@ -179,13 +192,27 @@ def main():
         f_locs = res
         total_locs += f_locs
         
-        if extensions:
-            locs_per_ext_hmap[file_ext.lstrip('.')] += f_locs
-        else:
-            if locs_per_ext_hmap.get(file_ext.lstrip('.')):
-                locs_per_ext_hmap[file_ext.lstrip('.')] += f_locs
+        if show_insights:
+            stripped_file_ext = file_ext.lstrip('.')
+            if extensions:
+                locs_per_ext_hmap[stripped_file_ext] += f_locs
+                if longest_file_per_ext_hmap.get(stripped_file_ext):
+                    if longest_file_per_ext_hmap[stripped_file_ext][1] < f_locs:  # Found new longest file of this type, update
+                        longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, f_locs)
+                else:
+                    longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, f_locs)
             else:
-                locs_per_ext_hmap[file_ext.lstrip('.')] = f_locs
+                if locs_per_ext_hmap.get(stripped_file_ext):
+                    locs_per_ext_hmap[stripped_file_ext] += f_locs
+                else:
+                    locs_per_ext_hmap[stripped_file_ext] = f_locs
 
     total_time = time.time() - start_time
-    format_print(total_locs, total_time, locs_per_ext_hmap, len(target_files))
+    format_print(
+        show_insights, 
+        total_locs, 
+        total_time, 
+        locs_per_ext_hmap, 
+        longest_file_per_ext_hmap, 
+        len(target_files)
+    )
