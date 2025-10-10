@@ -103,14 +103,19 @@ def parse_gitignore(path: str) -> set[str]:
 
     return gitignore_files
 
-def format_print(locs: int, time_val: float, tot_files: int) -> None:
+def format_print(locs: int, time_val: float, locs_per_ext_hmap: dict | None, tot_files: int) -> None:
     print('--- [PYLOC SUMMARY] ---')
     print(f'Files: \t\t{tot_files}')
     print(f'Lines of code: \t{locs}')
     print(f'Duration: \t{round(time_val, 2)} s')
+    if locs_per_ext_hmap:
+        print('--- [INSIGHTS] ---')
+        for ext, count in locs_per_ext_hmap.items():
+            print(f".{ext}: \t\t{count} LOCs")
 
 def main():
     start_time = time.time()
+    locs_per_ext_hmap = {}
 
     parser = setup_parser()
     args = parser.parse_args()
@@ -142,6 +147,8 @@ def main():
     if extensions:
         extensions = [ext.lstrip('.') for ext in extensions]
         target_files = {f for f in target_files if os.path.splitext(f)[1].lstrip('.') in extensions}
+        for ext in extensions:
+            locs_per_ext_hmap[ext] = 0
 
     # Exclude .gitignored files
     target_files.difference_update(excluded_files)
@@ -171,6 +178,9 @@ def main():
             continue
         f_locs = res
         total_locs += f_locs
+        
+        if extensions:
+            locs_per_ext_hmap[file_ext.lstrip('.')] += f_locs
 
     total_time = time.time() - start_time
-    format_print(total_locs, total_time, len(target_files))
+    format_print(total_locs, total_time, locs_per_ext_hmap, len(target_files))
