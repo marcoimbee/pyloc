@@ -109,7 +109,7 @@ def format_print(
         locs: int, 
         time_val: float, 
         locs_per_ext_hmap: dict, 
-        longest_file_per_ext_hmsp: dict, 
+        longest_file_per_ext_hmap: dict, 
         tot_files: int
     ) -> None:
     print('----- [PYLOC SUMMARY] ------')
@@ -120,7 +120,7 @@ def format_print(
     if show_insights:
         print('--- [LOCs per file type] ---')
         for ext, count in sorted(locs_per_ext_hmap.items(), key=lambda item: item[1], reverse=True):
-            print(f".{ext}: \t\t{count} \tLongest file: {longest_file_per_ext_hmsp[ext][0]}")
+            print(f".{ext}: \t\t{count} \tLongest file: {longest_file_per_ext_hmap[ext][0]}")
 
 def main():
     start_time = time.time()
