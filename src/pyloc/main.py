@@ -120,7 +120,10 @@ def format_print(
     if show_insights:
         print('--- [LOCs per file type] ---')
         for ext, count in sorted(locs_per_ext_hmap.items(), key=lambda item: item[1], reverse=True):
-            print(f".{ext}: \t\t{count} \tLongest file: {longest_file_per_ext_hmap[ext][0]}")
+            if count > 0:
+                print(f".{ext}: \t\t{count} \tLongest file: {longest_file_per_ext_hmap[ext][0]} ({longest_file_per_ext_hmap[ext][1]} LOCs)")
+            else:
+                print(f".{ext}: \t\t{count}")
 
 def main():
     start_time = time.time()
