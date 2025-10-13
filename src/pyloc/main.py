@@ -13,7 +13,7 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument('-e', '--extensions', nargs='+', default=[], help='File extensions to include')
     parser.add_argument('-g', '--use_gitignore', default=False, action='store_true',
                         help='Exclude from the count files that are included in the .gitignore file of the directory')
-    parser.add_argument('-i', '--insights', default=False, action='store_true', help='Show insights')
+    parser.add_argument('-i', '--insights', default=False, action='store_true', help='Show insights. Only available if the -e flag is used')
     return parser
 
 def count_locs(target_file: str, comment_signs: list[str] | None, multi_line_comment_signs: dict | None) -> int | None:
@@ -141,6 +141,10 @@ def main():
     if not project_path.exists():
         print(f"[PYLOC] Error: path '{project_path}' does not exist")
         return
+    
+    if not extensions and show_insights:
+        print(f'[PYLOC] Usage: -i/--insights is available only when specifying -e/--extensions')
+        return
 
     target_files = get_files_list(project_path)
     target_files = set(os.path.normpath(p) for p in target_files)
@@ -149,7 +153,7 @@ def main():
     if use_gitignore:
         gitignore_path = Path(os.path.join(project_path, '.gitignore'))
         if not gitignore_path.is_file():
-            print(f'-g/--use_gitignore was specified, but no .gitignore file is present in {project_path}')
+            print(f'[PYLOC] Error: -g/--use_gitignore was specified, but no .gitignore file is present in {project_path}')
             return
         try:
             excluded_files = parse_gitignore(gitignore_path)
