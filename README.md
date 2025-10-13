@@ -1,5 +1,5 @@
 # PyLoC: LoC Counter
-This is a very lighweight tool developed for personal usage to keep track of how much a project is growing overtime in terms of <strong>LoC (Lines of Code)</strong>.
+This is a very lighweight tool developed for personal usage to keep track of how much a project is growing overtime in terms of <strong>LoCs (Lines of Code)</strong>.
 
 <u>Comment lines and blank lines are ignored in the count.</u>
 
