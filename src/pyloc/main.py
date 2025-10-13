@@ -16,7 +16,7 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument('-g', '--use_gitignore', default=False, action='store_true',
                         help='Exclude from the count files that are included in the .gitignore file of the directory')
     parser.add_argument('-i', '--insights', default=False, action='store_true', help='Show insights. Only available if the -e flag is used')
-    parser.add_argument('-dt', '--disable_threading', default=False, action='store_true', help='Disable threading. LOCs will be counted by a single thread (may take longer)')
+    parser.add_argument('-et', '--enable_threading', default=False, action='store_true', help='Enable threading. LOCs will be counted 10 threads')
     return parser
 
 def count_locs(target_file: str, comment_signs: list[str] | None, multi_line_comment_signs: dict | None) -> int | None:
@@ -185,7 +185,7 @@ def main():
     extensions = args.extensions
     use_gitignore = args.use_gitignore
     show_insights = args.insights
-    disable_threading = args.disable_threading
+    enable_threading = args.enable_threading
 
     if not project_path.exists():
         print(f"[PYLOC] Error: path '{project_path}' does not exist")
@@ -224,11 +224,11 @@ def main():
         comment_data = json.load(f)
 
     # Multi-threaded computation
-    if not disable_threading:
+    if enable_threading:
         thread_count = 9    # Number of threads to split the operations into (default value)
         if len(target_files) < thread_count + 1:
             print(f'[PYLOC] PyLOC auto-disabled threading: the number of files to be processed is less than the default number of spawned threads')
-            disable_threading = True
+            enable_threading = False
             pass        # Skip to single thread computation
         else:
             start_time = time.time()
@@ -295,7 +295,7 @@ def main():
             )
 
     # Single-threaded computation
-    if disable_threading:
+    if not enable_threading:
         start_time = time.time()
 
         locs_per_ext_hmap = {}
