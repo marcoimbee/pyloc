@@ -4,6 +4,8 @@ import os
 import glob
 import re
 import json
+import math
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 
@@ -14,6 +16,7 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument('-g', '--use_gitignore', default=False, action='store_true',
                         help='Exclude from the count files that are included in the .gitignore file of the directory')
     parser.add_argument('-i', '--insights', default=False, action='store_true', help='Show insights. Only available if the -e flag is used')
+    parser.add_argument('-dt', '--disable_threading', default=False, action='store_true', help='Disable threading. LOCs will be counted by a single thread (may take longer)')
     return parser
 
 def count_locs(target_file: str, comment_signs: list[str] | None, multi_line_comment_signs: dict | None) -> int | None:
@@ -125,11 +128,56 @@ def format_print(
             else:
                 print(f".{ext}: \t\t{count}")
 
-def main():
-    start_time = time.time()
-    locs_per_ext_hmap = {}
-    longest_file_per_ext_hmap = {}
+def threaded_loc_computing(
+        project_path: str, 
+        target_files: list[str], 
+        comment_data: dict, 
+        show_insights: bool, 
+        extensions: list[str]
+) -> tuple:
+    total_locs = 0
+    thread_locs_per_ext_hmap = {}
+    thread_longest_file_per_ext_hmap = {}
 
+    for f in target_files:
+        abs_path = os.path.join(project_path, f)
+
+        file_ext = os.path.splitext(f)[1]      # Get file extension
+
+        file_comment_syntax = comment_data.get(file_ext)    # Get how comments are done in file based on its extension
+        if file_comment_syntax is None:
+            continue
+
+        file_single_line_comment = file_comment_syntax.get('single_line', None)    # list or single str
+        file_multi_line_comment = file_comment_syntax.get('multi_line', None)     # dict
+
+        res = count_locs(abs_path, file_single_line_comment, file_multi_line_comment)
+        if not res:
+            continue
+        f_locs = res
+        total_locs += f_locs
+        
+        if show_insights:
+            stripped_file_ext = file_ext.lstrip('.')
+            if extensions:
+                if thread_locs_per_ext_hmap.get(stripped_file_ext):
+                    thread_locs_per_ext_hmap[stripped_file_ext] += f_locs
+                else:
+                    thread_locs_per_ext_hmap[stripped_file_ext] = f_locs
+                if thread_longest_file_per_ext_hmap.get(stripped_file_ext):
+                    if thread_longest_file_per_ext_hmap[stripped_file_ext][1] < f_locs:  # Found new longest file of this type, update
+                        thread_longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, f_locs)
+                else:
+                    thread_longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, f_locs)
+            else:
+                if thread_locs_per_ext_hmap.get(stripped_file_ext):
+                    thread_locs_per_ext_hmap[stripped_file_ext] += f_locs
+                else:
+                    thread_locs_per_ext_hmap[stripped_file_ext] = f_locs
+
+    return (total_locs, thread_locs_per_ext_hmap, thread_longest_file_per_ext_hmap)
+
+def main():
     parser = setup_parser()
     args = parser.parse_args()
 
@@ -137,6 +185,7 @@ def main():
     extensions = args.extensions
     use_gitignore = args.use_gitignore
     show_insights = args.insights
+    disable_threading = args.disable_threading
 
     if not project_path.exists():
         print(f"[PYLOC] Error: path '{project_path}' does not exist")
@@ -165,10 +214,6 @@ def main():
     if extensions:
         extensions = [ext.lstrip('.') for ext in extensions]
         target_files = {f for f in target_files if os.path.splitext(f)[1].lstrip('.') in extensions}
-        if show_insights:
-            for ext in extensions:
-                locs_per_ext_hmap[ext] = 0
-                longest_file_per_ext_hmap[ext] = (None, -1)
 
     # Exclude .gitignored files
     target_files.difference_update(excluded_files)
@@ -178,48 +223,128 @@ def main():
     with open(comments_json, 'r', encoding='utf-8') as f:
         comment_data = json.load(f)
 
-    # Count LOCs
-    total_locs = 0
-    total_time = 0
-    for f in target_files:
-        abs_path = os.path.join(project_path, f)
-
-        file_ext = os.path.splitext(f)[1]      # Get file extension
-
-        file_comment_syntax = comment_data.get(file_ext)    # Get how comments are done in file based on its extension
-        if file_comment_syntax is None:
-            continue
-
-        file_single_line_comment = file_comment_syntax.get('single_line', None)    # list or single str
-        file_multi_line_comment = file_comment_syntax.get('multi_line', None)     # dict
-
-        res = count_locs(abs_path, file_single_line_comment, file_multi_line_comment)
-        if not res:
-            continue
-        f_locs = res
-        total_locs += f_locs
+    # Multi-threaded computation
+    if not disable_threading:
+        thread_count = 9    # Number of threads to split the operations into (default value)
+        if len(target_files) < thread_count + 1:
+            print(f'[PYLOC] PyLOC auto-disabled threading: the number of files to be processed is less than the default number of spawned threads')
+            disable_threading = True
+            pass        # Skip to single thread computation
+        else:
+            start_time = time.time()
+            print(f'[PYLOC] Threading is enabled ({thread_count + 1} threads)')
         
-        if show_insights:
-            stripped_file_ext = file_ext.lstrip('.')
-            if extensions:
-                locs_per_ext_hmap[stripped_file_ext] += f_locs
-                if longest_file_per_ext_hmap.get(stripped_file_ext):
-                    if longest_file_per_ext_hmap[stripped_file_ext][1] < f_locs:  # Found new longest file of this type, update
+            target_files_chunks = []
+
+            # Divide target files in thread_count chunks (lists)
+            tot_files_per_thread = math.floor(len(target_files) / thread_count)
+            # tot_files_last_thread = len(target_files) - (tot_files_per_thread * thread_count)
+            for _ in range(thread_count):
+                files_per_thread = []
+                for _ in range(tot_files_per_thread):
+                    files_per_thread.append(target_files.pop())
+                target_files_chunks.append(files_per_thread)
+            target_files_chunks.append(target_files)
+            elapsed = time.time() - start_time
+            print('dividing files in chunks took', elapsed, 's')
+
+            with ThreadPoolExecutor(max_workers=(thread_count+1)) as executor:
+                futures = [
+                    executor.submit(
+                        threaded_loc_computing,
+                        project_path,
+                        thread_target_files,
+                        comment_data,
+                        show_insights,
+                        extensions
+                    )
+                    for thread_target_files in target_files_chunks
+                ]
+
+            threads_results = [f.result() for f in futures]
+
+            # Joining results
+            total_locs = sum(thread_result[0] for thread_result in threads_results)
+            joined_locs_per_ext_hmap = {}
+            joined_longest_file_per_ext_hmap = {}
+            if show_insights:
+                for thread_result in threads_results:
+                    thread_locs_per_ext_hmap = thread_result[1]
+                    for ext, locs in thread_locs_per_ext_hmap.items():
+                        if joined_locs_per_ext_hmap.get(ext):
+                            joined_locs_per_ext_hmap[ext] += locs
+                        else:
+                            joined_locs_per_ext_hmap[ext] = locs
+                    
+                    thread_longest_file_per_ext_hmap = thread_result[2]
+                    for ext, longest_file_and_locs_tuple in thread_longest_file_per_ext_hmap.items():
+                        if joined_longest_file_per_ext_hmap.get(ext):
+                            if joined_longest_file_per_ext_hmap[ext][1] < longest_file_and_locs_tuple[1]:
+                                joined_longest_file_per_ext_hmap[ext] = longest_file_and_locs_tuple
+                        else:
+                            joined_longest_file_per_ext_hmap[ext] = longest_file_and_locs_tuple
+            
+            total_time = time.time() - start_time
+            format_print(
+                show_insights, 
+                total_locs, 
+                total_time, 
+                joined_locs_per_ext_hmap, 
+                joined_longest_file_per_ext_hmap, 
+                sum(len(files_per_thread) for files_per_thread in target_files_chunks)
+            )
+
+    # Single-threaded computation
+    if disable_threading:
+        start_time = time.time()
+
+        locs_per_ext_hmap = {}
+        longest_file_per_ext_hmap = {}
+
+        total_locs = 0
+        total_time = 0
+        for f in target_files:
+            abs_path = os.path.join(project_path, f)
+
+            file_ext = os.path.splitext(f)[1]      # Get file extension
+
+            file_comment_syntax = comment_data.get(file_ext)    # Get how comments are done in file based on its extension
+            if file_comment_syntax is None:
+                continue
+
+            file_single_line_comment = file_comment_syntax.get('single_line', None)    # list or single str
+            file_multi_line_comment = file_comment_syntax.get('multi_line', None)     # dict
+
+            res = count_locs(abs_path, file_single_line_comment, file_multi_line_comment)
+            if not res:
+                continue
+            f_locs = res
+            total_locs += f_locs
+            
+            if show_insights:
+                stripped_file_ext = file_ext.lstrip('.')
+                if extensions:
+                    if locs_per_ext_hmap.get(stripped_file_ext):
+                        locs_per_ext_hmap[stripped_file_ext] += f_locs
+                    else:
+                        locs_per_ext_hmap[stripped_file_ext] = f_locs
+                    if longest_file_per_ext_hmap.get(stripped_file_ext):
+                        if longest_file_per_ext_hmap[stripped_file_ext][1] < f_locs:  # Found new longest file of this type, update
+                            longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, f_locs)
+                    else:
                         longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, f_locs)
                 else:
-                    longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, f_locs)
-            else:
-                if locs_per_ext_hmap.get(stripped_file_ext):
-                    locs_per_ext_hmap[stripped_file_ext] += f_locs
-                else:
-                    locs_per_ext_hmap[stripped_file_ext] = f_locs
+                    if locs_per_ext_hmap.get(stripped_file_ext):
+                        locs_per_ext_hmap[stripped_file_ext] += f_locs
+                    else:
+                        locs_per_ext_hmap[stripped_file_ext] = f_locs
 
-    total_time = time.time() - start_time
-    format_print(
-        show_insights, 
-        total_locs, 
-        total_time, 
-        locs_per_ext_hmap, 
-        longest_file_per_ext_hmap, 
-        len(target_files)
-    )
+        total_time = time.time() - start_time
+        format_print(
+            show_insights, 
+            total_locs, 
+            total_time, 
+            locs_per_ext_hmap, 
+            longest_file_per_ext_hmap, 
+            len(target_files)
+        )
