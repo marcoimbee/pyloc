@@ -1,55 +1,5 @@
-import os
 import re
 
-
-def threaded_loc_computing(
-        project_path: str, 
-        target_files: list[str], 
-        comment_data: dict, 
-        show_insights: bool, 
-        extensions: list[str]
-    ) -> tuple:
-    total_locs = 0
-    thread_locs_per_ext_hmap = {}
-    thread_longest_file_per_ext_hmap = {}
-
-    for f in target_files:
-        abs_path = os.path.join(project_path, f)
-
-        file_ext = os.path.splitext(f)[1]      # Get file extension
-
-        file_comment_syntax = comment_data.get(file_ext)    # Get how comments are done in file based on its extension
-        if file_comment_syntax is None:
-            continue
-
-        file_single_line_comment = file_comment_syntax.get('single_line', None)    # list or single str
-        file_multi_line_comment = file_comment_syntax.get('multi_line', None)     # dict
-
-        res = count_locs(abs_path, file_single_line_comment, file_multi_line_comment)
-        if not res:
-            continue
-        f_locs = res
-        total_locs += f_locs
-        
-        if show_insights:
-            stripped_file_ext = file_ext.lstrip('.')
-            if extensions:
-                if thread_locs_per_ext_hmap.get(stripped_file_ext):
-                    thread_locs_per_ext_hmap[stripped_file_ext] += f_locs
-                else:
-                    thread_locs_per_ext_hmap[stripped_file_ext] = f_locs
-                if thread_longest_file_per_ext_hmap.get(stripped_file_ext):
-                    if thread_longest_file_per_ext_hmap[stripped_file_ext][1] < f_locs:  # Found new longest file of this type, update
-                        thread_longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, f_locs)
-                else:
-                    thread_longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, f_locs)
-            else:
-                if thread_locs_per_ext_hmap.get(stripped_file_ext):
-                    thread_locs_per_ext_hmap[stripped_file_ext] += f_locs
-                else:
-                    thread_locs_per_ext_hmap[stripped_file_ext] = f_locs
-
-    return (total_locs, thread_locs_per_ext_hmap, thread_longest_file_per_ext_hmap)
 
 def count_locs(
         target_file: str, 
