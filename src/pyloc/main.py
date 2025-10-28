@@ -88,7 +88,7 @@ def loc_info_format_print(
             else:
                 print(f".{ext}: \t{count} LOCs")
 
-        print('\n--- [Top {top_k_cloc_data} files by comment ratio] ---')
+        print(f'\n--- [Top {top_k_cloc_data} files by comment ratio] ---')
         print(f"{'Ratio':>7} | {'CLOCs':>6} | File")
         print('-'*50)
         for _ in range(min(top_k_cloc_data, len(comment_lines_data_heap))):
