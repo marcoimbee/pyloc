@@ -27,3 +27,6 @@ pyloc my_project -e .py .java -g -i
 Counts all Python and Java lines of code in the directory `my_project`, skipping files included in `my_project/.gitignore`. It will also show the total number of LOCs for `.py` files and for `.java` files separately, along with the longest file for each extension. 
 Data about how well-commented the project (in terms of considered files) is will be shown as well.
 <!-- Moreover, threading is enabled: if `my_project` is a very large repository, the execution will be shorter. -->
+
+An output can be the following:
+<img src="assets/ex.png">
