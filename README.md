@@ -1,5 +1,5 @@
 # PyLoC: LoC Counter
-This is a very lighweight tool developed for personal usage to keep track of how much a project is growing overtime in terms of <strong>LoCs (Lines of Code)</strong> and <strong>CLoCs (Comment Lines of Code)</strong>.
+This is a very lightweight tool developed for personal usage to keep track of how much a project is growing over time in terms of <strong>LoCs (Lines of Code)</strong> and <strong>CLoCs (Comment Lines of Code)</strong>.
 
 ## Installation (system-wide)
 Via `pip install`:
@@ -24,6 +24,6 @@ pyloc <path> [-e EXT1 EXT2 ...] [-g] [-i]
 ```bash
 pyloc my_project -e .py .java -g -i
 ```
-Counts all Python and Java lines of code in the directory `my_project`, skipping files included in `my_project/.gitignore`. Will also show the total number of LOCs for `.py` files and for `.java` files separately, along with the longest file for each extension. 
+Counts all Python and Java lines of code in the directory `my_project`, skipping files included in `my_project/.gitignore`. It will also show the total number of LOCs for `.py` files and for `.java` files separately, along with the longest file for each extension. 
 Data about how well-commented the project (in terms of considered files) is will be shown as well.
 <!-- Moreover, threading is enabled: if `my_project` is a very large repository, the execution will be shorter. -->
