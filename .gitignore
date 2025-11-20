@@ -1,8 +1,5 @@
-TODO.md
-
 # Python-related elements
 venv/
 PyLoC.egg-info/
 build/
 __pycache__/
-src/pyloc/threaded_counting.py
