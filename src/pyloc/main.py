@@ -17,9 +17,15 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument('-i', '--insights', default=False, action='store_true', help='Show insights. Only available if the -e flag is used')
     return parser
 
-def get_files_list(dir: str) -> set[str]:
-    base = Path(dir)
-    return set(str(p.relative_to(base)) for p in base.rglob('*') if p.is_file())
+def get_files_list(dir_path: str) -> set[str]:
+    base = os.fspath(dir_path)
+    result = set()
+    for root, _, files in os.walk(base):
+        for f in files:
+            full = os.path.join(root, f)
+            rel = os.path.relpath(full, base)
+            result.add(rel)
+    return result
 
 def parse_gitignore(path: str) -> set[str]:
     gitignore = Path(path)
@@ -88,7 +94,7 @@ def main():
         return
 
     start_time = time.time()
-
+    
     target_files = get_files_list(project_path)
     target_files = set(os.path.normpath(p) for p in target_files)
 
