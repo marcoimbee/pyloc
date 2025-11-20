@@ -88,13 +88,13 @@ def main():
     if not project_path.exists():
         print(f"[PYLOC] Error: path '{project_path}' does not exist")
         return
-    
+        
     if not extensions and show_insights:
         print(f'[PYLOC] Usage: -i/--insights is available only when specifying -e/--extensions')
         return
 
     start_time = time.time()
-    
+
     target_files = get_files_list(project_path)
     target_files = set(os.path.normpath(p) for p in target_files)
 
