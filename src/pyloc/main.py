@@ -3,7 +3,6 @@ import time
 import os
 import glob
 import json
-import heapq
 from pathlib import Path
 
 from .loc_counting.loc_counting import *
@@ -52,32 +51,15 @@ def parse_gitignore(path: str) -> set[str]:
 def loc_info_format_print(
         show_insights: bool, 
         locs: int, 
-        clocs: int, 
         time_val: float, 
         locs_per_ext_hmap: dict, 
         longest_file_per_ext_hmap: dict, 
-        comment_lines_data_heap: list,    # Heap
-        top_k_cloc_data: int,
         tot_files: int
     ) -> None:
     print('----- [PYLOC SUMMARY] ------')
+    print(f'Duration: \t\t{round(time_val, 2)} s')
     print(f'Files: \t\t\t{tot_files}')
     print(f'Lines of code: \t\t{locs}')
-    print(f'Comment lines: \t\t{clocs}')
-    print(f'Duration: \t\t{round(time_val, 2)} s')
-
-    # Overall comment ratio
-    comment_ratio = (clocs / locs * 100) if locs != 0 else 0
-    print(f'Overall Comment Ratio: \t{comment_ratio:.2f}%')
-    if comment_ratio < 5:
-        comment_class = "Poorly commented"
-    elif 5 <= comment_ratio < 15:
-        comment_class = "Reasonably commented"
-    elif 15 <= comment_ratio < 25:
-        comment_class = "Well commented"
-    else:
-        comment_class = "Possibly over-commented or verbose"
-    print(f'Commenting quality: \t{comment_class}')
 
     if show_insights:
         print('\n--- [LOCs per file type] ---')
@@ -88,25 +70,6 @@ def loc_info_format_print(
             else:
                 print(f".{ext}: \t{count} LOCs")
 
-        print(f'\n--- [Top {top_k_cloc_data} files by comment ratio] ---')
-        print(f"{'Ratio':>7} | {'CLOCs':>6} | File")
-        print('-'*50)
-        for _ in range(min(top_k_cloc_data, len(comment_lines_data_heap))):
-            ratio_neg, file_clocs, abs_path = heapq.heappop(comment_lines_data_heap)
-            ratio_percent = -ratio_neg  # restore positive value
-
-            # Classification
-            if ratio_percent < 5:
-                cl_comment_class = "Poorly"
-            elif 5 <= ratio_percent < 15:
-                cl_comment_class = "Reasonable"
-            elif 15 <= ratio_percent < 25:
-                cl_comment_class = "Well"
-            else:
-                cl_comment_class = "Possibly over-commented / verbose"
-
-            print(f"{ratio_percent:6.2f}% | {file_clocs:6} | {abs_path} ({cl_comment_class})")
-
 def main():
     parser = setup_parser()
     args = parser.parse_args()
@@ -116,8 +79,6 @@ def main():
     use_gitignore = args.use_gitignore
     show_insights = args.insights
 
-    TOP_K_CLOC_DATA = 5
-
     if not project_path.exists():
         print(f"[PYLOC] Error: path '{project_path}' does not exist")
         return
@@ -125,6 +86,8 @@ def main():
     if not extensions and show_insights:
         print(f'[PYLOC] Usage: -i/--insights is available only when specifying -e/--extensions')
         return
+
+    start_time = time.time()
 
     target_files = get_files_list(project_path)
     target_files = set(os.path.normpath(p) for p in target_files)
@@ -154,13 +117,10 @@ def main():
     with open(comments_json, 'r', encoding='utf-8') as f:
         comment_data = json.load(f)
 
-    start_time = time.time()
     locs_per_ext_hmap = {}
-    longest_file_per_ext_hmap = {}   # Will contain, for each extension, tuples like (filepath, #locs) or (filepath, #locs, #clocs) if -c is specified
-    comment_lines_data_heap = []     # Will contain data about the top 5 best commented files based on the ratio CLOCs/LOCs
+    longest_file_per_ext_hmap = {}   # Will contain, for each extension, tuples like (filepath, #locs)
 
     total_locs = 0
-    total_clocs = 0
     total_time = 0
     for f in target_files:
         abs_path = os.path.join(project_path, f)
@@ -177,10 +137,8 @@ def main():
         res = count_locs(abs_path, file_single_line_comment, file_multi_line_comment)
         if not res:
             continue
-        file_locs = res[0]                     # Currently analyzed file LOCs
-        file_clocs = res[1]                    # Currently analyzed file CLOCs
+        file_locs = res                        # Currently analyzed file LOCs
         total_locs += file_locs                # Aggregated LOCs across all considered files
-        total_clocs += file_clocs              # Aggregated CLOCs across all considered files
         
         if show_insights:
             # LOCs
@@ -194,27 +152,19 @@ def main():
                     if longest_file_per_ext_hmap[stripped_file_ext][1] < file_locs:  # Found new longest file of this type, update
                         longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, file_locs)
                 else:
-                    longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, file_locs, file_clocs)
+                    longest_file_per_ext_hmap[stripped_file_ext] = (abs_path, file_locs)
             else:
                 if locs_per_ext_hmap.get(stripped_file_ext):
                     locs_per_ext_hmap[stripped_file_ext] += file_locs
                 else:
                     locs_per_ext_hmap[stripped_file_ext] = file_locs
-            
-            # CLOCs: push new data into CLOCs data heap
-            cloc_loc_ratio = (file_clocs / file_locs * 100) if file_locs != 0 else 0
-            new_heap_element = (-cloc_loc_ratio, file_clocs, abs_path)
-            heapq.heappush(comment_lines_data_heap, new_heap_element)
 
     total_time = time.time() - start_time
     loc_info_format_print(
         show_insights, 
         total_locs, 
-        total_clocs, 
         total_time, 
         locs_per_ext_hmap, 
         longest_file_per_ext_hmap, 
-        comment_lines_data_heap, 
-        TOP_K_CLOC_DATA,
         len(target_files)
     )

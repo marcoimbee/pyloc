@@ -1,6 +1,3 @@
-import re
-
-
 def count_locs(
         target_file: str, 
         comment_signs: list[str] | None, 
@@ -14,7 +11,6 @@ def count_locs(
         return None
     
     code_lines_count = 0
-    comment_lines_count = 0
 
     # Handle multi-line comment blocks
     multi_line_comment_ranges = []      # Will contain tuples (start, end) of all the multi comment blocks
@@ -49,22 +45,19 @@ def count_locs(
 
         # Check if line is inside a multi-line comment block
         if any(start <= idx <= end for start, end in multi_line_comment_ranges):
-            comment_lines_count += 1
             continue
         
         # Check if line is a full line comment
         if any(stripped.startswith(sign) for sign in comment_signs):
-            comment_lines_count += 1
             continue
 
         # Check for inline comment
         has_inline_comment = any(sign in stripped for sign in comment_signs)
         if has_inline_comment:
-            comment_lines_count += 1
             code_lines_count += 1
             continue
-    
+
         # Fallback: pure code line
         code_lines_count += 1
         
-    return code_lines_count, comment_lines_count
+    return code_lines_count
