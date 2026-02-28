@@ -2,13 +2,15 @@
 This is a very lightweight tool developed for personal usage to keep track of how much a project is growing over time in terms of <strong>LoCs (Lines of Code)</strong>.
 
 ## Installation (system-wide)
-Via `pip install`:
+Via `pip`:
 ```bash
 git clone https://github.com/marcoimbee/pyloc.git
 cd pyloc
 pip install .
 ```
-Note that at least `Python v3.9` is required for running this tool.
+
+### Requirements
+At least `Python v3.9` is required for running this tool.
 
 ## Usage
 ```bash
